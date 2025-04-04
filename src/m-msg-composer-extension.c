@@ -33,8 +33,7 @@ G_DEFINE_DYNAMIC_TYPE_EXTENDED (MMsgComposerExtension, m_msg_composer_extension,
 	G_ADD_PRIVATE_DYNAMIC (MMsgComposerExtension))
 
 static void
-action_msg_composer_cb (GtkAction *action,
-			MMsgComposerExtension *msg_composer_ext)
+action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *msg_composer_ext)
 {
 	EMsgComposer *composer;
 
@@ -100,8 +99,7 @@ m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer_ext,
 	gtk_ui_manager_ensure_update (ui_manager);
 }
 
-static void
-m_msg_composer_extension_constructed (GObject *object)
+static void m_msg_composer_extension_constructed (GObject *object)
 {
 	EExtension *extension;
 	EExtensible *extensible;
@@ -115,8 +113,7 @@ m_msg_composer_extension_constructed (GObject *object)
 	m_msg_composer_extension_add_ui (M_MSG_COMPOSER_EXTENSION (object), E_MSG_COMPOSER (extensible));
 }
 
-static void
-m_msg_composer_extension_class_init (MMsgComposerExtensionClass *class)
+static void m_msg_composer_extension_class_init (MMsgComposerExtensionClass *class)
 {
 	GObjectClass *object_class;
 	EExtensionClass *extension_class;
@@ -129,19 +126,16 @@ m_msg_composer_extension_class_init (MMsgComposerExtensionClass *class)
 	extension_class->extensible_type = E_TYPE_MSG_COMPOSER;
 }
 
-static void
-m_msg_composer_extension_class_finalize (MMsgComposerExtensionClass *class)
+static void m_msg_composer_extension_class_finalize (MMsgComposerExtensionClass *class)
 {
 }
 
-static void
-m_msg_composer_extension_init (MMsgComposerExtension *msg_composer_ext)
+static void m_msg_composer_extension_init (MMsgComposerExtension *msg_composer_ext)
 {
 	msg_composer_ext->priv = m_msg_composer_extension_get_instance_private (msg_composer_ext);
 }
 
-void
-m_msg_composer_extension_type_register (GTypeModule *type_module)
+void m_msg_composer_extension_type_register (GTypeModule *type_module)
 {
 	m_msg_composer_extension_register_type (type_module);
 }

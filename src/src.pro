@@ -3,6 +3,10 @@ TEMPLATE = lib
 CONFIG += link_pkgconfig plugin
 CONFIG -= qt
 
+test {
+	CONFIG += staticlib
+}
+
 TARGET = example-module
 INCLUDEPATH += . 
 
