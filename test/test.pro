@@ -1,8 +1,14 @@
 TEMPLATE = app
 
-LIBS += ../lib/libexample-module.so -lpng
+CONFIG -= qt
+LIBS += -lpng
 
-SOURCES = test.cpp
+INCLUDEPATH += ../src
+
+SOURCES = test.cpp \
+          ../src/latex-converter.cpp
+
+HEADERS = ../src/latex-converter.h
 DESTDIR = ../bin
 
 

@@ -14,6 +14,8 @@ PKGCONFIG += gtk+-3.0
 PKGCONFIG += glib-2.0
 PKGCONFIG += evolution-mail-3.0
 
+QMAKE_CXXFLAGS += -fPIC
+
 DEFINES += GETTEXT_PACKAGE='\\"example-module\\"'
 DESTDIR = ../lib
 
@@ -33,11 +35,13 @@ HEADERS += m-calendar-ui.h \
            m-mail-ui.h \
            m-msg-composer-extension.h \
            m-shell-view-extension.h \
-           m-utils.h
+           m-utils.h \
+           latex-converter.h
 
 SOURCES += example-module.c \
            m-calendar-ui.c \
            m-mail-ui.c \
            m-msg-composer-extension.c \
            m-shell-view-extension.c \
-           m-utils.c
+           m-utils.c \
+           latex-converter.cpp

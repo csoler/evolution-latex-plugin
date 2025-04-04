@@ -24,6 +24,7 @@
 #include <composer/e-msg-composer.h>
 
 #include "m-msg-composer-extension.h"
+#include "latex-converter.h"
 
 struct _MMsgComposerExtensionPrivate {
 	gint dummy;
@@ -32,8 +33,54 @@ struct _MMsgComposerExtensionPrivate {
 G_DEFINE_DYNAMIC_TYPE_EXTENDED (MMsgComposerExtension, m_msg_composer_extension, E_TYPE_EXTENSION, 0,
 	G_ADD_PRIVATE_DYNAMIC (MMsgComposerExtension))
 
-static void
-action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *msg_composer_ext)
+struct ExternalEditorData {
+    EMsgComposer *composer;
+    gchar *content;
+    GDestroyNotify content_destroy_notify;
+    guint cursor_position, cursor_offset;
+};
+static void launch_editor_content_ready_cb (GObject *source_object, GAsyncResult *result, gpointer user_data)
+{
+    struct ExternalEditorData *eed = user_data;
+    EContentEditor *cnt_editor;
+    EContentEditorContentHash *content_hash;
+    GThread *editor_thread;
+    GError *error = NULL;
+
+    g_return_if_fail (E_IS_CONTENT_EDITOR (source_object));
+    g_return_if_fail (eed != NULL);
+
+    cnt_editor = E_CONTENT_EDITOR (source_object);
+
+    content_hash = e_content_editor_get_content_finish (cnt_editor, result, &error);
+
+    if (!content_hash)
+    {
+        g_warning ("%s: Faild to get content: %s", G_STRFUNC, error ? error->message : "Unknown error");
+        return;
+    }
+
+    eed->content = content_hash ? e_content_editor_util_steal_content_data (content_hash, E_CONTENT_EDITOR_GET_TO_SEND_PLAIN, &(eed->content_destroy_notify)) : NULL;
+
+    g_print ("Got the following message content:\n%s\n", (char*)eed->content);
+
+    // now convert the message
+
+    gchar *converted_text = NULL;
+    int error_code=0;
+
+    if(!convertText(eed->content,&converted_text,&error_code))
+    {
+        g_print ("Some error occured: code %d\n", error_code);
+        return;
+    }
+
+    e_msg_composer_set_body_text(eed->composer, converted_text,true);
+
+    free(converted_text);
+
+}
+static void action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *msg_composer_ext)
 {
 	EMsgComposer *composer;
 
@@ -41,7 +88,17 @@ action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *msg_composer_e
 
 	composer = E_MSG_COMPOSER (e_extension_get_extensible (E_EXTENSION (msg_composer_ext)));
 
-	g_print ("%s: for composer '%s'\n", G_STRFUNC, gtk_window_get_title (GTK_WINDOW (composer)));
+    EHTMLEditor *editor = e_msg_composer_get_editor(composer);
+    EContentEditor *cnt_editor = e_html_editor_get_content_editor(editor);
+
+    struct ExternalEditorData *eed = (struct ExternalEditorData*)malloc(sizeof(struct ExternalEditorData));
+    eed->composer = composer;
+
+    // Start async request of editor data
+
+    e_content_editor_get_content (cnt_editor, E_CONTENT_EDITOR_GET_TO_SEND_PLAIN, NULL, NULL, launch_editor_content_ready_cb, eed);
+
+    g_print ("New 2 action: %s: for composer '%s'\n", G_STRFUNC, gtk_window_get_title (GTK_WINDOW (composer)));
 }
 
 static GtkActionEntry msg_composer_entries[] = {
