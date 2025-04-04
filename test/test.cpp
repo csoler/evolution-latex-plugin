@@ -7,11 +7,63 @@
 //-===============================================================================================-//
 
 #include <vector>
+#include <math.h>
+#include <libpng/png.h>
+
+int get_png_size(const std::string& filename, int& width, int& height) 
+{
+    FILE *fp = fopen(filename.c_str(), "rb");
+    if (!fp) return -1;
+
+    // Read and validate the PNG signature (first 8 bytes)
+    png_byte header[8];
+    fread(header, 1, 8, fp);
+    if (png_sig_cmp(header, 0, 8)) {
+        fclose(fp);
+        return -2;  // Not a PNG
+    }
+
+    // Initialize png structs
+    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (!png_ptr) {
+        fclose(fp);
+        return -3;
+    }
+
+    png_infop info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+        png_destroy_read_struct(&png_ptr, NULL, NULL);
+        fclose(fp);
+        return -4;
+    }
+
+    if (setjmp(png_jmpbuf(png_ptr))) {
+        // libpng will jump here if there's an error
+        png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+        fclose(fp);
+        return -5;
+    }
+
+    png_init_io(png_ptr, fp);
+    png_set_sig_bytes(png_ptr, 8); // We already read the first 8 bytes
+
+    png_read_info(png_ptr, info_ptr);
+
+    width  = png_get_image_width(png_ptr, info_ptr);
+    height = png_get_image_height(png_ptr, info_ptr);
+
+    // Cleanup
+    png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+    fclose(fp);
+    return 0;
+}
 
 struct Equation {
 	std::string latex_code;
 	int start;
 	int end;
+	int width;
+	int height;
 	std::string base64_code;
 };
 bool parseFile(const std::string& file,std::vector<Equation>& eqns,std::string& err_str)
@@ -47,14 +99,15 @@ bool parseFile(const std::string& file,std::vector<Equation>& eqns,std::string& 
 	return true;
 }
 
-bool convertEquation(const std::string& latex_code,std::string& base64_image_code,std::string& err_str)
+bool convertEquation(const std::string& latex_code,std::string& base64_image_code,int& width,int& height,std::string& err_str)
 {
-	char template_c[500] = "/tmp/tmp_file_evolution_latex_plugin_XXXXXX" ;
+	//char template_c[500] = "/tmp/tmp_file_evolution_latex_plugin_XXXXXX" ;
+	char template_c[500] = "tmp_file_evolution_latex_plugin_XXXXXX" ;
 	mkstemp(template_c);
 
 	std::string template_str(template_c) ;
 
-	template_str = "tmp" ;// debug
+	//template_str = "tmp" ;// debug
 
 	// create a temporary LaTeX file
 	//
@@ -88,6 +141,8 @@ bool convertEquation(const std::string& latex_code,std::string& base64_image_cod
 	system(command_pdftoppm.c_str());
 	system(command_base64.c_str());
 
+	get_png_size(template_str + ".png",width,height);
+
 	// read the base64 file
 	//
 	std::ostringstream buffer;
@@ -98,10 +153,11 @@ bool convertEquation(const std::string& latex_code,std::string& base64_image_cod
 	system( ("rm -f " + template_str + ".dvi").c_str() );
 	system( ("rm -f " + template_str + ".ps" ).c_str() );
 	system( ("rm -f " + template_str + ".pdf").c_str() );
-	system( ("rm -f " + template_str + ".png").c_str() );
+	//system( ("rm -f " + template_str + ".png").c_str() );
 	system( ("rm -f " + template_str + ".b64").c_str() );
 	system( ("rm -f " + template_str + ".log").c_str() );
 	system( ("rm -f " + template_str + ".aux").c_str() );
+	system( ("rm -f " + template_str).c_str() );
 
 	return true;
 }
@@ -115,7 +171,12 @@ bool replaceEquations(const std::string& input_file,const std::vector<Equation>&
 		output_file.append(input_file.substr(last_end,eqns[i].start-last_end)); // concats whatever is before the eq
 		output_file.append("<IMG src=\"data:image/png;base64,");
 		output_file.append(eqns[i].base64_code);
-		output_file.append("\" alt=\"" + eqns[i].latex_code + "\" style=\"height:16px; vertical-align:middle;\">");
+
+		char s[100];
+		int size = eqns[i].height/271.0 * 16.0;
+		sprintf(s,"%dpx",(int)rint(size));
+
+		output_file.append("\" alt=\"" + eqns[i].latex_code + "\" style=\"height:"+s+"; vertical-align:middle;\">");
 		last_end = eqns[i].end+1;
 	}
 	output_file.append(input_file.substr(last_end,input_file.size()));
@@ -138,7 +199,7 @@ bool convertText(const std::string& input,std::string& output,std::string& error
 	std::cerr << "Read " << eqns.size() << " equations." << std::endl;
 
 	for(uint32_t i=0;i<eqns.size();++i)
-		if(!convertEquation(eqns[i].latex_code,eqns[i].base64_code,err_str))
+		if(!convertEquation(eqns[i].latex_code,eqns[i].base64_code,eqns[i].width,eqns[i].height,err_str))
 		{
 			error = "Error while converting equation \"" + eqns[i].latex_code + "\": " + err_str ;
 			return false;
