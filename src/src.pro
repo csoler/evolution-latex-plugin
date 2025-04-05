@@ -7,7 +7,7 @@ test {
 	CONFIG += staticlib
 }
 
-TARGET = example-module
+TARGET = latex-equations
 INCLUDEPATH += . 
 
 PKGCONFIG += gtk+-3.0
@@ -16,7 +16,7 @@ PKGCONFIG += evolution-mail-3.0
 
 QMAKE_CXXFLAGS += -fPIC
 
-DEFINES += GETTEXT_PACKAGE='\\"example-module\\"'
+DEFINES += GETTEXT_PACKAGE='\\"latex-equations\\"'
 DESTDIR = ../lib
 
 target.path = $$(HOME)/.local/share/evolution/modules/lib/evolution/modules/
@@ -38,10 +38,12 @@ HEADERS += m-calendar-ui.h \
            m-utils.h \
            latex-converter.h
 
-SOURCES += example-module.c \
+SOURCES += \
+           latex-equations-module.c \
            m-calendar-ui.c \
            m-mail-ui.c \
            m-msg-composer-extension.c \
            m-shell-view-extension.c \
            m-utils.c \
            latex-converter.cpp
+

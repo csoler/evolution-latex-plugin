@@ -13,3 +13,15 @@ Plugin to write LaTeX equations in gnome Evolution mailer.
  $ make
  $ make install
 
+## TODO
+
+* properly rename plugin and relevant files
+* check that the editor can handle the converted text and disable button if not
+* setup a proper icon
+* implement proper error handling
+* add a config panel
+* check that the required executables are available
+* improve behavior when clicking again on already converted text
+* cleanup unused example code
+* have a valgrind pass
+

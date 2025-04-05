@@ -30,12 +30,10 @@ struct _MMsgComposerExtensionPrivate {
 	gint dummy;
 };
 
-G_DEFINE_DYNAMIC_TYPE_EXTENDED (MMsgComposerExtension, m_msg_composer_extension, E_TYPE_EXTENSION, 0,
-	G_ADD_PRIVATE_DYNAMIC (MMsgComposerExtension))
+G_DEFINE_DYNAMIC_TYPE_EXTENDED (MMsgComposerExtension, m_msg_composer_extension, E_TYPE_EXTENSION, 0, G_ADD_PRIVATE_DYNAMIC (MMsgComposerExtension))
 
 struct ExternalEditorData {
     EMsgComposer *composer;
-    gchar *content;
     GDestroyNotify content_destroy_notify;
     guint cursor_position, cursor_offset;
 };
@@ -44,7 +42,6 @@ static void launch_editor_content_ready_cb (GObject *source_object, GAsyncResult
     struct ExternalEditorData *eed = user_data;
     EContentEditor *cnt_editor;
     EContentEditorContentHash *content_hash;
-    GThread *editor_thread;
     GError *error = NULL;
 
     g_return_if_fail (E_IS_CONTENT_EDITOR (source_object));
@@ -60,16 +57,16 @@ static void launch_editor_content_ready_cb (GObject *source_object, GAsyncResult
         return;
     }
 
-    eed->content = content_hash ? e_content_editor_util_steal_content_data (content_hash, E_CONTENT_EDITOR_GET_TO_SEND_PLAIN, &(eed->content_destroy_notify)) : NULL;
+    gchar *content = content_hash ? e_content_editor_util_steal_content_data (content_hash, E_CONTENT_EDITOR_GET_TO_SEND_PLAIN, &(eed->content_destroy_notify)) : NULL;
 
-    g_print ("Got the following message content:\n%s\n", (char*)eed->content);
+    g_print ("Got the following message content:\n%s\n", (char*)content);
 
     // now convert the message
 
     gchar *converted_text = NULL;
     int error_code=0;
 
-    if(!convertText(eed->content,&converted_text,&error_code))
+    if(!convertText(content,&converted_text,&error_code))
     {
         g_print ("Some error occured: code %d\n", error_code);
         return;
@@ -77,6 +74,7 @@ static void launch_editor_content_ready_cb (GObject *source_object, GAsyncResult
 
     e_msg_composer_set_body_text(eed->composer, converted_text,true);
 
+    free(eed);
     free(converted_text);
 
 }
@@ -102,11 +100,11 @@ static void action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *ms
 }
 
 static GtkActionEntry msg_composer_entries[] = {
-	{ "my-msg-composer-action",
+    { "convert-latex-equations-action",
 	  "document-new",
 	  N_("M_y Message Composer Action..."),
-	  NULL,
-	  N_("My Message Composer Action"),
+      "<Shift><Control>l",
+      N_("Convert LaTeX equations"),
 	  G_CALLBACK (action_msg_composer_cb) }
 };
 
@@ -119,14 +117,14 @@ m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer_ext,
 		"  <placeholder name='pre-edit-menu'>\n"
 		"    <menu action='file-menu'>\n"
 		"      <placeholder name='external-editor-holder'>\n"
-		"        <menuitem action='my-msg-composer-action'/>\n"
+        "        <menuitem action='convert-latex-equations-action'/>\n"
 		"      </placeholder>\n"
 		"    </menu>\n"
 		"  </placeholder>\n"
 		"</menubar>\n"
 		"\n"
 		"<toolbar name='main-toolbar'>\n"
-		"  <toolitem action='my-msg-composer-action'/>\n"
+        "  <toolitem action='convert-latex-equations-action'/>\n"
 		"</toolbar>\n";
 
 	EHTMLEditor *html_editor;

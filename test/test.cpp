@@ -2,7 +2,7 @@
 #include <fstream>
 #include "argstream.h"
 
-#include "latex-converter.h"
+extern bool convertText_cpp(const std::string& input,std::string& output,std::string& error);
 
 void showHelp(const char *name)
 {
@@ -50,7 +50,7 @@ int main(int argc,char *argv[])
 		std::string output_text;
 		std::string error_string;
 
-		if(!convertText(input_text,output_text,error_string))
+        if(!convertText_cpp(input_text,output_text,error_string))
 			throw std::runtime_error("Error while converting file: " + error_string);
 
 		// save the file
