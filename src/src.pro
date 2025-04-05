@@ -19,9 +19,14 @@ QMAKE_CXXFLAGS += -fPIC
 DEFINES += GETTEXT_PACKAGE='\\"latex-equations\\"'
 DESTDIR = ../lib
 
+INSTALLED_FILES = $$DESTDIR/lib$${TARGET}.so
+
 target.path = $$(HOME)/.local/share/evolution/modules/lib/evolution/modules/
-target.files = ${DESTDIR}/${TARGET}.so
-INSTALLS += target
+target.files = $$INSTALLED_FILES
+INSTALLS = target
+
+message("Target.path = " $$(HOME)/.local/share/evolution/modules/lib/evolution/modules/)
+message("Target.files = " $$INSTALLED_FILES)
 
 debug {
 	OBJECTS_DIR = .obj.debug

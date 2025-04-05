@@ -7,6 +7,6 @@ test {
 }
 
 target.path = $$(HOME)/.local/share/evolution/modules/lib/evolution/modules/
-target.files = lib/libexample-module.so
+target.files = lib/liblatex-equations.so
 INSTALLS += target
 
