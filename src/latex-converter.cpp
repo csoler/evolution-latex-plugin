@@ -98,11 +98,14 @@ bool parseFile(const std::string& file,std::vector<Equation>& eqns,std::string& 
     return true;
 }
 
-bool convertEquation(const std::string& latex_code,std::string& base64_image_code,int& width,int& height,std::string& err_str)
+bool convertEquation(const std::string& latex_code,std::string& base64_image_code,int& width,int& height,int& err_code,std::string& error_details)
 {
     //char template_c[500] = "/tmp/tmp_file_evolution_latex_plugin_XXXXXX" ;
     char template_c[500] = "tmp_file_evolution_latex_plugin_XXXXXX" ;
     mkstemp(template_c);
+
+    err_code = LATEX_CONVERTER_ERROR_CODE_NONE;
+    error_details.clear();
 
     std::string template_str(template_c) ;
 
@@ -134,11 +137,18 @@ bool convertEquation(const std::string& latex_code,std::string& base64_image_cod
     // compile the files
     //
     //
-    system(command_latex.c_str());
-    system(command_dvips.c_str());
-    system(command_ps2pdf.c_str());
-    system(command_pdftoppm.c_str());
-    system(command_base64.c_str());
+    if(system(command_latex.c_str()))
+    {
+        std::ostringstream buffer;
+        buffer << std::ifstream(template_str+".log").rdbuf();
+        error_details = buffer.str();
+        err_code = LATEX_CONVERTER_ERROR_CODE_LATEX;
+        return false;
+    }
+    if(system(command_dvips.c_str()))    { err_code = LATEX_CONVERTER_ERROR_CODE_DVIPS; return false; }
+    if(system(command_ps2pdf.c_str()))   { err_code = LATEX_CONVERTER_ERROR_CODE_PS2PDF; return false; }
+    if(system(command_pdftoppm.c_str())) { err_code = LATEX_CONVERTER_ERROR_CODE_PDF2PNG; return false; }
+    if(system(command_base64.c_str()))   { err_code = LATEX_CONVERTER_ERROR_CODE_BASE64; return false; }
 
     get_png_size(template_str + ".png",width,height);
 
@@ -183,7 +193,7 @@ bool replaceEquations(const std::string& input_file,const std::vector<Equation>&
     return true;
 }
 
-bool convertText_cpp(const std::string& input,std::string& output,std::string& error)
+bool convertText_cpp(const std::string& input,std::string& output,int& error_code,std::string& error_details)
 {
     std::cerr << "Converting a file of " << input.size() << " characters." << std::endl;
 
@@ -192,46 +202,51 @@ bool convertText_cpp(const std::string& input,std::string& output,std::string& e
 
     if(!parseFile(input,eqns,err_str))
     {
-        error = "Error while parsing file: " + err_str ;
+        error_code = LATEX_CONVERTER_ERROR_CODE_PARSING;
         return false;
     }
     std::cerr << "Read " << eqns.size() << " equations." << std::endl;
 
     for(uint32_t i=0;i<eqns.size();++i)
-        if(!convertEquation(eqns[i].latex_code,eqns[i].base64_code,eqns[i].width,eqns[i].height,err_str))
-        {
-            error = "Error while converting equation \"" + eqns[i].latex_code + "\": " + err_str ;
+        if(!convertEquation(eqns[i].latex_code,eqns[i].base64_code,eqns[i].width,eqns[i].height,error_code,error_details))
             return false;
-        }
 
     if(!replaceEquations(input,eqns,output,err_str))
     {
-        error = "Error: " + err_str;
+        error_code = LATEX_CONVERTER_ERROR_CODE_SUBSTIT;
         return false;
     }
 
     return true;
 }
 
+static char *duplicate_string(const std::string& s)
+{
+    char *res = (char*)malloc(s.size()+1);
+    memcpy(res,s.c_str(),s.size());
+    res[s.size()] = 0;
+    return res;
+}
+
 extern "C" {
 
-bool convertText(const char *input,char **output,int *error_code)
+bool convertText(const char *input,char **output,int *error_code,char **error_info)
 {
     std::string result;
-    std::string err_str;
+    int err_code;
+    std::string err_details;
+    *error_info = NULL;
 
-    if(convertText_cpp(std::string(input),result,err_str))
+    if(convertText_cpp(std::string(input),result,err_code,err_details))
     {
-        *output = (char*)malloc(result.size()+1);
-        memcpy(*output,result.c_str(),result.size());
-        (*output)[result.size()] = 0;
-
-        *error_code = LATEX_CONVERTER_ERROR_CODE_NO_ERROR ;
+        *output = duplicate_string(result);
+        *error_code = LATEX_CONVERTER_ERROR_CODE_NONE ;
         return true;
     }
     else
     {
-        *error_code = LATEX_CONVERTER_ERROR_CODE_ERROR ;
+        *error_info = duplicate_string(err_details);
+        *error_code = err_code;
         return false;
     }
 }

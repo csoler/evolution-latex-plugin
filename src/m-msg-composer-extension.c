@@ -37,6 +37,57 @@ struct ExternalEditorData {
     GDestroyNotify content_destroy_notify;
     guint cursor_position, cursor_offset;
 };
+static void show_error_dialog(GtkWindow *parent, const char *message)
+{
+    GtkWidget *dialog;
+
+    dialog = gtk_message_dialog_new(
+        parent,
+        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+        GTK_MESSAGE_ERROR,
+        GTK_BUTTONS_CLOSE,
+        "%s", message);
+
+    gtk_dialog_run(GTK_DIALOG(dialog));
+    gtk_widget_destroy(dialog);
+}
+void show_error_dialog_scrollable(GtkWindow *parent, const char *title, const char *message)
+{
+    GtkWidget *dialog = gtk_dialog_new_with_buttons(
+        title,
+        parent,
+        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+        "_Close", GTK_RESPONSE_CLOSE,
+        NULL);
+
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+    // Create scrolled window
+    GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
+                                   GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_size_request(scrolled_window, 400, 200); // set scroll area size
+
+    // Create text view
+    GtkWidget *text_view = gtk_text_view_new();
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(text_view), GTK_WRAP_WORD_CHAR);
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(text_view), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(text_view), FALSE);
+
+    // Set the message text
+    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
+    gtk_text_buffer_set_text(buffer, message, -1);
+
+    // Add text view to scrolled window
+    gtk_container_add(GTK_CONTAINER(scrolled_window), text_view);
+    gtk_box_pack_start(GTK_BOX(content_area), scrolled_window, TRUE, TRUE, 10);
+
+    gtk_widget_show_all(dialog);
+
+    gtk_dialog_run(GTK_DIALOG(dialog));
+    gtk_widget_destroy(dialog);
+}
+
 static void launch_editor_content_ready_cb (GObject *source_object, GAsyncResult *result, gpointer user_data)
 {
     struct ExternalEditorData *eed = user_data;
@@ -65,10 +116,18 @@ static void launch_editor_content_ready_cb (GObject *source_object, GAsyncResult
 
     gchar *converted_text = NULL;
     int error_code=0;
+    gchar *error_details = NULL;
 
-    if(!convertText(content,&converted_text,&error_code))
+    if(!convertText(content,&converted_text,&error_code,&error_details))
     {
-        g_print ("Some error occured: code %d\n", error_code);
+        int len = strlen(error_details)+1000;
+        char *error_message = (char*)malloc(len+1);
+        snprintf(error_message,len,"Error %d while converting. Details:\n%s\n",error_code,error_details);
+
+        free(error_details);
+
+        show_error_dialog_scrollable(&eed->composer->parent,"LaTeX conversion error",error_message);
+        free(error_message);
         return;
     }
 
@@ -78,14 +137,38 @@ static void launch_editor_content_ready_cb (GObject *source_object, GAsyncResult
     free(converted_text);
 
 }
+
+static bool checkExists(EMsgComposer *composer,const char *path,const char *package_name)
+{
+    struct stat st;
+
+    if (stat(path, &st) == 0 && (st.st_mode & S_IXUSR))
+        return true;
+
+    int len = strlen(path) + strlen(package_name) + 100;
+
+    char tmp[len];
+    sprintf(tmp,"Executable %s not found!\nTry to install package named %s.",path,package_name);
+
+    show_error_dialog(GTK_WINDOW(&composer->parent), tmp);
+
+    return false;
+}
 static void action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *msg_composer_ext)
 {
-	EMsgComposer *composer;
+    EMsgComposer *composer;
+    g_return_if_fail (M_IS_MSG_COMPOSER_EXTENSION (msg_composer_ext));
+    composer = E_MSG_COMPOSER (e_extension_get_extensible (E_EXTENSION (msg_composer_ext)));
 
-	g_return_if_fail (M_IS_MSG_COMPOSER_EXTENSION (msg_composer_ext));
+    // perform various checks
 
-	composer = E_MSG_COMPOSER (e_extension_get_extensible (E_EXTENSION (msg_composer_ext)));
+    if(!checkExists(composer,"/usr/bin/latex","texlive-latex-base")) return;
+    if(!checkExists(composer,"/usr/bin/dvips","texlive-binaries"))   return;
+    if(!checkExists(composer,"/usr/bin/ps2pdf","ghostscript"))       return;
+    if(!checkExists(composer,"/usr/bin/pdftocairo","poppler-utils")) return;
+    if(!checkExists(composer,"/usr/bin/base64","coreutils"))         return;
 
+    //
     EHTMLEditor *editor = e_msg_composer_get_editor(composer);
     EContentEditor *cnt_editor = e_html_editor_get_content_editor(editor);
 
@@ -101,16 +184,14 @@ static void action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *ms
 
 static GtkActionEntry msg_composer_entries[] = {
     { "convert-latex-equations-action",
-	  "document-new",
+      "ooo-math",
 	  N_("M_y Message Composer Action..."),
       "<Shift><Control>l",
       N_("Convert LaTeX equations"),
 	  G_CALLBACK (action_msg_composer_cb) }
 };
 
-static void
-m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer_ext,
-				 EMsgComposer *composer)
+static void m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer_ext, EMsgComposer *composer)
 {
 	const gchar *ui_def =
 		"<menubar name='main-menu'>\n"
@@ -126,6 +207,8 @@ m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer_ext,
 		"<toolbar name='main-toolbar'>\n"
         "  <toolitem action='convert-latex-equations-action'/>\n"
 		"</toolbar>\n";
+
+    gtk_icon_theme_add_resource_path(gtk_icon_theme_get_default(),"/usr/share/icons/breeze/actions/22/");
 
 	EHTMLEditor *html_editor;
 	GtkActionGroup *action_group;
