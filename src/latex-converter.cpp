@@ -128,7 +128,7 @@ bool convertEquation(const std::string& latex_code,std::string& base64_image_cod
 
     // make a temporary file
 
-    std::string command_latex    = "latex " + template_str + ".tex";
+    std::string command_latex    = "latex -interaction=nonstopmode " + template_str + ".tex";
     std::string command_dvips    = "dvips -E -x 16000 " + template_str + ".dvi";
     std::string command_ps2pdf   = "ps2pdf -dEPSCrop " + template_str + ".ps " + template_str + ".pdf";
     std::string command_pdftoppm = "pdftocairo -singlefile -transp -png " + template_str + ".pdf " + template_str ;

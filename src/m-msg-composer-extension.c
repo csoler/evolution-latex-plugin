@@ -26,6 +26,8 @@
 #include "m-msg-composer-extension.h"
 #include "latex-converter.h"
 
+#define LATEX_CONVERT_ACTION_NAME "convert-latex-equations-action"
+
 struct _MMsgComposerExtensionPrivate {
 	gint dummy;
 };
@@ -182,8 +184,29 @@ static void action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *ms
     g_print ("New 2 action: %s: for composer '%s'\n", G_STRFUNC, gtk_window_get_title (GTK_WINDOW (composer)));
 }
 
+static void update_actions_cb(EMsgComposer *composer, GtkActionEntry *entries)
+{
+    GtkUIManager *ui_manager = e_shell_window_get_ui_manager (composer);
+
+    EHTMLEditor *editor = e_msg_composer_get_editor(composer);
+    EContentEditorMode mode = e_html_editor_get_mode(editor);
+
+    GtkAction *convert_action =	e_lookup_action(ui_manager,LATEX_CONVERT_ACTION_NAME);
+
+    if(!convert_action)
+    {
+        fprintf(stderr,"Cannot find action!");
+        return;
+    }
+
+    if(mode == E_CONTENT_EDITOR_MODE_HTML || mode == E_CONTENT_EDITOR_MODE_MARKDOWN_HTML)
+        gtk_action_set_sensitive(convert_action, TRUE);
+    else
+        gtk_action_set_sensitive(convert_action, FALSE);
+}
+
 static GtkActionEntry msg_composer_entries[] = {
-    { "convert-latex-equations-action",
+    { LATEX_CONVERT_ACTION_NAME,
       "ooo-math",
 	  N_("M_y Message Composer Action..."),
       "<Shift><Control>l",
@@ -234,7 +257,10 @@ static void m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer
 		g_error_free (error);
 	}
 
-	gtk_ui_manager_ensure_update (ui_manager);
+    /* Decide whether we want this option to be visible or not */
+    g_signal_connect ( composer, "update-actions", G_CALLBACK (update_actions_cb), composer);
+
+    gtk_ui_manager_ensure_update (ui_manager);
 }
 
 static void m_msg_composer_extension_constructed (GObject *object)

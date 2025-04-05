@@ -37,10 +37,10 @@ release {
 }
 
 # Input
-HEADERS += m-calendar-ui.h \
+HEADERS += \
+           m-calendar-ui.h \
            m-mail-ui.h \
            m-msg-composer-extension.h \
-           m-shell-view-extension.h \
            m-utils.h \
            latex-converter.h
 
@@ -49,7 +49,6 @@ SOURCES += \
            m-calendar-ui.c \
            m-mail-ui.c \
            m-msg-composer-extension.c \
-           m-shell-view-extension.c \
            m-utils.c \
            latex-converter.cpp
 
