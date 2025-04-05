@@ -20,6 +20,7 @@ DEFINES += GETTEXT_PACKAGE='\\"latex-equations\\"'
 DESTDIR = ../lib
 
 target.path = $$(HOME)/.local/share/evolution/modules/lib/evolution/modules/
+target.files = ${DESTDIR}/${TARGET}.so
 INSTALLS += target
 
 debug {
