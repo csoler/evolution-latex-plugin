@@ -24,4 +24,4 @@ Plugin to write LaTeX equations in gnome Evolution mailer.
 * improve behavior when clicking again on already converted text
 * cleanup unused example code
 * have a valgrind pass
-
+* add a license
