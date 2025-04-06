@@ -1,8 +1,10 @@
 /* latex-converter plugin for Gnome Evolution
+ * Copyright (C) 2016 Red Hat, Inc. (www.redhat.com)
  * Copyright (C) 2025 Cyril Soler.
  *
  * Authors and maintainers:
- *     April 2025:  Cyril Soler <cyril.soler@inria.fr>
+ *           2016: Red Hat, Inc. (evolution plugin example code)
+ *     April 2025: Cyril Soler <cyril.soler@inria.fr>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

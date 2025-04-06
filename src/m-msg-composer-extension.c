@@ -1,4 +1,3 @@
-
 /* latex-converter plugin for Gnome Evolution
  * Copyright (C) 2016 Red Hat, Inc. (www.redhat.com)
  * Copyright (C) 2025 Cyril Soler.
@@ -40,6 +39,8 @@ struct _MMsgComposerExtensionPrivate {
 };
 
 G_DEFINE_DYNAMIC_TYPE_EXTENDED (MMsgComposerExtension, m_msg_composer_extension, E_TYPE_EXTENSION, 0, G_ADD_PRIVATE_DYNAMIC (MMsgComposerExtension))
+
+GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *epl);
 
 struct ExternalEditorData {
     EMsgComposer *composer;
@@ -180,6 +181,13 @@ static void action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *ms
     //
     EHTMLEditor *editor = e_msg_composer_get_editor(composer);
     EContentEditor *cnt_editor = e_html_editor_get_content_editor(editor);
+    EContentEditorMode mode = e_html_editor_get_mode(editor);
+
+    if(mode != E_CONTENT_EDITOR_MODE_HTML && mode != E_CONTENT_EDITOR_MODE_MARKDOWN_HTML)
+    {
+        show_error_dialog(&composer->parent,"Cannot convert equations in plain text mode.\nPlease use HTML editor instead.");
+        return;
+    }
 
     struct ExternalEditorData *eed = (struct ExternalEditorData*)malloc(sizeof(struct ExternalEditorData));
     eed->composer = composer;
@@ -190,15 +198,16 @@ static void action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *ms
 
     g_print ("New 2 action: %s: for composer '%s'\n", G_STRFUNC, gtk_window_get_title (GTK_WINDOW (composer)));
 }
-
-static void update_actions_cb(EMsgComposer *composer, GtkActionEntry *entries)
+#ifdef TODO
+static void update_actions_cb(EHTMLEditor *editor, GtkActionEntry *entries)
 {
-    GtkUIManager *ui_manager = e_shell_window_get_ui_manager (composer);
-
-    EHTMLEditor *editor = e_msg_composer_get_editor(composer);
+    GtkUIManager *ui_manager = e_html_editor_get_ui_manager (editor);
     EContentEditorMode mode = e_html_editor_get_mode(editor);
 
+
     GtkAction *convert_action =	e_lookup_action(ui_manager,LATEX_CONVERT_ACTION_NAME);
+
+        fprintf(stderr,"Got action %p!",(void*)convert_action);
 
     if(!convert_action)
     {
@@ -211,6 +220,7 @@ static void update_actions_cb(EMsgComposer *composer, GtkActionEntry *entries)
     else
         gtk_action_set_sensitive(convert_action, FALSE);
 }
+#endif
 
 static GtkActionEntry msg_composer_entries[] = {
     { LATEX_CONVERT_ACTION_NAME,
@@ -263,9 +273,11 @@ static void m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer
 		g_warning ("%s: Failed to add ui definition: %s", G_STRFUNC, error->message);
 		g_error_free (error);
 	}
-
+#ifdef TODO
     /* Decide whether we want this option to be visible or not */
-    g_signal_connect ( composer, "update-actions", G_CALLBACK (update_actions_cb), composer);
+    /* this actually doesn't work since the callback is never called. I don't know why. */
+    g_signal_connect ( html_editor, "update-actions", G_CALLBACK (update_actions_cb), html_editor);
+#endif
 
     gtk_ui_manager_ensure_update (ui_manager);
 }
@@ -309,4 +321,63 @@ static void m_msg_composer_extension_init (MMsgComposerExtension *msg_composer_e
 void m_msg_composer_extension_type_register (GTypeModule *type_module)
 {
 	m_msg_composer_extension_register_type (type_module);
+}
+void ee_editor_command_changed (GtkWidget *textbox)
+{
+    const gchar *editor;
+    GSettings *settings;
+
+    editor = gtk_entry_get_text (GTK_ENTRY (textbox));
+    printf ("\n\aeditor is : [%s] \n\a", editor);
+
+    /* GSettings access for every key-press. Sucky ? */
+    settings = e_util_ref_settings ("org.gnome.evolution.plugin.latex-equations");
+    g_settings_set_string (settings, "command", editor);
+    g_object_unref (settings);
+}
+
+GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *epl)
+{
+    GtkWidget *vbox, *textbox, *label, *help;
+    GtkWidget *checkbox;
+    GSettings *settings;
+    gchar *editor;
+    gboolean checked;
+
+    fprintf(stderr,"***** e_plugin_lib_get_configure_widget called!\n");
+
+    vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
+    textbox = gtk_entry_new ();
+    label = gtk_label_new (_("Command to be executed to launch the editor: "));
+    help = gtk_label_new (_("For XEmacs use “xemacs”\nFor Vim use “gvim -f”"));
+    settings = e_util_ref_settings ("org.gnome.evolution.plugin.latex-equations");
+
+    editor = g_settings_get_string (settings, "command");
+
+    if (editor) {
+        gtk_entry_set_text (GTK_ENTRY (textbox), editor);
+        g_free (editor);
+    }
+
+    checkbox = gtk_check_button_new_with_mnemonic ( _("_Automatically launch when a new mail is edited"));
+    checked = g_settings_get_boolean (settings, "launch-on-key-press");
+    if (checked)
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbox), TRUE);
+    g_object_unref (settings);
+
+    gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), textbox, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), help, FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), checkbox, FALSE, FALSE, 0);
+
+    g_signal_connect ( textbox, "changed", G_CALLBACK (ee_editor_command_changed), textbox);
+
+#ifdef TODO
+    g_signal_connect (
+        checkbox, "toggled",
+        G_CALLBACK (ee_editor_immediate_launch_changed), checkbox);
+#endif
+    gtk_widget_show_all (vbox);
+
+    return vbox;
 }
