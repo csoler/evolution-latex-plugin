@@ -29,7 +29,7 @@ install: build
 	dh_clean -k
 	dh_installdirs
 	install -D -m 755 builddir/lib/liblatex-equations.so $(CURDIR)/debian/evolution-plugin-latex-equations/usr/lib/evolution/plugins/liborg-gnome-evolution-latex-equations.so
-	install -D -m 644 builddir/src/latex-equations.eplug $(CURDIR)/debian/evolution-plugin-latex-equations/usr/lib/evolution/plugins/org-gnome-evolution-latex-equations.eplug
+	install -D -m 644 src/latex-equations.eplug $(CURDIR)/debian/evolution-plugin-latex-equations/usr/lib/evolution/plugins/org-gnome-evolution-latex-equations.eplug
 
 
 # Add here commands to install the package into debian/your_appname
