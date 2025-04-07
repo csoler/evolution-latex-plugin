@@ -34,6 +34,11 @@ git clone $gitpath $workdir
 
 echo Cleaning 
 
+if ! test -d "$workdir" ; then
+	echo $workdir missing. Exiting.
+	exit
+fi
+
 cd $workdir
 find . -name ".git" -exec \rm -rf {} \;
 

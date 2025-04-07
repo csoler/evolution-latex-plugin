@@ -2,7 +2,7 @@
 
 dir=`basename $PWD`
 
-if ! test "$dir" = "LibYlm" ;  then
+if ! test "$dir" = "evolution-latex-plugin" ;  then
 	echo Please run this script from top directory
 	exit
 fi
