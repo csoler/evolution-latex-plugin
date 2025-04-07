@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <e-plugin-list>
   <e-plugin type="shlib"
-	  location="/home/csoler/.local/share/evolution/modules/lib/evolution/modules/liblatex-equations.so"
+	  location="/usr/lib/evolution/plugins/liborg-gnome-evolution-latex-equations.so"
 	    id="org.gnome.plugin.latex.equations" name="LaTeX Equations">
     <author name="Cyril Soler" email="cyril.soler@inria.fr"/>
     <description>Converts LaTeX equations between $ $ from edited messages into images embedded in the text.</description>
