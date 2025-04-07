@@ -2,7 +2,7 @@
 
 ###################### PARAMETERS ####################
 version="1.0"
-gitpath="git@gitlab.inria.fr:csoler/evolution-latex-plugin.git"
+gitpath="git@github.com:csoler/evolution-latex-plugin.git"
 workdir=evolution-latex-plugin-$version
 #commit="304"
 ######################################################
@@ -15,7 +15,7 @@ if ! test "$dir" = "evolution-latex-plugin"; then
 fi
 
 if test -d "$workdir" ;  then
-	echo Please remove the $workdir directory first (call scripts/clean.sh).
+	echo Please remove the $workdir directory first \(call scripts/clean.sh\).
 	exit
 fi
 if test "$1" = "" ; then

@@ -1,6 +1,11 @@
 # evolution-latex-plugin
 Plugin to write LaTeX equations in gnome Evolution mailer.
 
+## Dependencies
+
+Compilation requires the following packages: libpng-dev,
+Execution requires the following packages: texlive-latex-base, texlive-binaries, ghostscript, poppler-utils, coreutils
+
 ## Compilation with cmake
 
 <pre>
