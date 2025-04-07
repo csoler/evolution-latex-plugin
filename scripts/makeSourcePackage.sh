@@ -46,18 +46,19 @@ for i in jammy noble ; do
 	echo copying changelog for $i
 	cat ../scripts/changelog | sed -e s/XXXXXX/"$commit"/g | sed -e s/YYYYYY/"$i"/g > debian/changelog
 
-	if test "$i" = "precise" ; then
-		echo Distribution is precise, using specific control file.
-		cp ../debian/control.precise debian/control
-	elif test "$i" = "jammy" ; then
-		echo Distribution is jammy, using specific control file.
-		cp ../debian/control.jammy debian/control
-	elif test "$i" = "noble" ; then
-		echo Distribution is noble, using specific control file.
-		cp ../debian/control.noble debian/control
-	else
-		cp ../debian/control debian/control
-	fi
+#	if test "$i" = "precise" ; then
+#		echo Distribution is precise, using specific control file.
+#		cp ../debian/control.precise debian/control
+#	elif test "$i" = "jammy" ; then
+#		echo Distribution is jammy, using specific control file.
+#		cp ../debian/control.jammy debian/control
+#	elif test "$i" = "noble" ; then
+#		echo Distribution is noble, using specific control file.
+#		cp ../debian/control.noble debian/control
+#	else
+#	fi
+
+	cp ../debian/control debian/control
 
 	# This is the key for "Cyril Soler <csoler@sourceforge.net>"
 	debuild -d -S -kEFD19E9DC737CA98
