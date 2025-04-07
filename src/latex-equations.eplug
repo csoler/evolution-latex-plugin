@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <e-plugin-list>
   <e-plugin type="shlib"
-	  location="latex-equations.so"
-	    id="org.gnome.plugin.latex.equations" _name="LaTeX Equations">
+	  location="/home/csoler/.local/share/evolution/modules/lib/evolution/modules/liblatex-equations.so"
+	    id="org.gnome.plugin.latex.equations" name="LaTeX Equations">
     <author name="Cyril Soler" email="cyril.soler@inria.fr"/>
-    <_description>Converts LaTeX equations between $ $ from edited messages into images embedded in the text.</_description>
-
+    <description>Converts LaTeX equations between $ $ from edited messages into images embedded in the text.</description>
      <hook class="org.gnome.evolution.ui:1.0">
        <ui-manager id="org.gnome.evolution.composer"/>
      </hook>

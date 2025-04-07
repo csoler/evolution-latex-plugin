@@ -34,6 +34,43 @@
 
 #define LATEX_CONVERT_ACTION_NAME "convert-latex-equations-action"
 
+// Plugin entry functions
+//
+gint e_plugin_lib_enable (EPlugin *ep, gint enable);
+//void ee_editor_command_changed (GtkWidget *textbox);
+//void ee_editor_immediate_launch_changed (GtkWidget *checkbox);
+
+// Plugin implementation
+//
+gint e_plugin_lib_enable (EPlugin *ep, gint enable)
+{
+    return 0;
+}
+
+// void ee_editor_command_changed (GtkWidget *textbox)
+// {
+//     GSettings *settings;
+//     const gchar *editor = gtk_entry_get_text (GTK_ENTRY (textbox));
+//     printf ("\n\aeditor is : [%s] \n\a", editor);
+//
+//     /* GSettings access for every key-press. Sucky ? */
+//     settings = e_util_ref_settings ("org.gnome.evolution.plugin.latex-equations");
+//     g_settings_set_string (settings, "command", editor);
+//     g_object_unref (settings);
+// }
+//
+// void ee_editor_immediate_launch_changed (GtkWidget *checkbox)
+// {
+//     gboolean immediately;
+//     GSettings *settings;
+//     immediately = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (checkbox));
+//
+//     printf ("\n\aimmediate launch is : [%d] \n\a", immediately);
+//
+//     settings = e_util_ref_settings ("org.gnome.evolution.plugin.latex-equations");
+//     g_settings_set_boolean (settings, "launch-on-key-press", immediately);
+//     g_object_unref (settings);
+// }
 struct _MMsgComposerExtensionPrivate {
 	gint dummy;
 };
@@ -148,11 +185,14 @@ static void launch_editor_content_ready_cb (GObject *source_object, GAsyncResult
 
 }
 
-static bool checkExists(EMsgComposer *composer,const char *path,const char *package_name)
+static bool executableExists(const char *command)
 {
     struct stat st;
-
-    if (stat(path, &st) == 0 && (st.st_mode & S_IXUSR))
+    return stat(command, &st) == 0 && (st.st_mode & S_IXUSR);
+}
+static bool checkExists(EMsgComposer *composer,const char *path,const char *package_name)
+{
+    if(executableExists(path))
         return true;
 
     int len = strlen(path) + strlen(package_name) + 100;
@@ -322,37 +362,52 @@ void m_msg_composer_extension_type_register (GTypeModule *type_module)
 {
 	m_msg_composer_extension_register_type (type_module);
 }
-void ee_editor_command_changed (GtkWidget *textbox)
+
+void add_command_widget_for(GtkWidget *vbox,const char *command,const char *package)
 {
-    const gchar *editor;
-    GSettings *settings;
+    GtkWidget *hbox_cmd = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    GtkWidget *entry_cmd = gtk_entry_new();
 
-    editor = gtk_entry_get_text (GTK_ENTRY (textbox));
-    printf ("\n\aeditor is : [%s] \n\a", editor);
+    gtk_box_pack_start(GTK_BOX(hbox_cmd), entry_cmd, TRUE, TRUE, 0);
 
-    /* GSettings access for every key-press. Sucky ? */
-    settings = e_util_ref_settings ("org.gnome.evolution.plugin.latex-equations");
-    g_settings_set_string (settings, "command", editor);
-    g_object_unref (settings);
+    GtkWidget *icon_image ;
+
+    if(executableExists(command))
+    {
+        icon_image = gtk_image_new_from_icon_name("starred", GTK_ICON_SIZE_BUTTON);
+        gtk_entry_set_text(GTK_ENTRY(entry_cmd), command);
+    }
+    else
+    {
+        char text[1001];
+        snprintf(text,1000,"Missing package %s",package);
+        gtk_entry_set_text(GTK_ENTRY(entry_cmd), text);
+        icon_image = gtk_image_new_from_icon_name("dialog-error", GTK_ICON_SIZE_BUTTON);
+    }
+
+    gtk_editable_set_editable(GTK_EDITABLE(entry_cmd), FALSE);
+
+    gtk_box_pack_start(GTK_BOX(hbox_cmd), icon_image, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox_cmd, FALSE, FALSE, 0);
 }
 
 GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *epl)
 {
-    GtkWidget *vbox, *textbox, *label, *help;
-    GtkWidget *checkbox;
-    GSettings *settings;
-    gchar *editor;
-    gboolean checked;
+    GtkWidget *vbox;
+//    GSettings *settings;
+//    gchar *editor;
+//    gboolean checked;
 
     fprintf(stderr,"***** e_plugin_lib_get_configure_widget called!\n");
 
+#ifdef SUSPENDED
     vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
     textbox = gtk_entry_new ();
     label = gtk_label_new (_("Command to be executed to launch the editor: "));
     help = gtk_label_new (_("For XEmacs use “xemacs”\nFor Vim use “gvim -f”"));
-    settings = e_util_ref_settings ("org.gnome.evolution.plugin.latex-equations");
+//    settings = e_util_ref_settings ("org.gnome.evolution.plugin.latex-equations");
 
-    editor = g_settings_get_string (settings, "command");
+//    editor = g_settings_get_string (settings, "command");
 
     if (editor) {
         gtk_entry_set_text (GTK_ENTRY (textbox), editor);
@@ -360,18 +415,40 @@ GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *epl)
     }
 
     checkbox = gtk_check_button_new_with_mnemonic ( _("_Automatically launch when a new mail is edited"));
-    checked = g_settings_get_boolean (settings, "launch-on-key-press");
-    if (checked)
-        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbox), TRUE);
-    g_object_unref (settings);
+//    checked = g_settings_get_boolean (settings, "launch-on-key-press");
+//    if (checked)
+//        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbox), TRUE);
+//    g_object_unref (settings);
 
     gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), textbox, FALSE, FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), help, FALSE, FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), checkbox, FALSE, FALSE, 0);
+#endif
 
-    g_signal_connect ( textbox, "changed", G_CALLBACK (ee_editor_command_changed), textbox);
+    vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
 
+    add_command_widget_for(vbox,"/usr/bin/latex","texlive-latex-base");
+    add_command_widget_for(vbox,"/usr/bin/dvips","texlive-binaries");
+    add_command_widget_for(vbox,"/usr/bin/ps2pdf","ghostscript");
+    add_command_widget_for(vbox,"/usr/bin/pdftocairo","poppler-utils");
+    add_command_widget_for(vbox,"/usr/bin/base64","coreutils");
+
+//        g_signal_connect(entry_cmd, "changed", G_CALLBACK(on_command_changed), NULL);
+
+        // --- Row 2: Resolution + Entry ---
+        GtkWidget *hbox_res = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+        GtkWidget *entry_res = gtk_entry_new();
+        gtk_entry_set_text(GTK_ENTRY(entry_res), "16000");
+        gtk_entry_set_input_purpose(GTK_ENTRY(entry_res), GTK_INPUT_PURPOSE_NUMBER); // mobile hint
+        gtk_entry_set_max_length(GTK_ENTRY(entry_res), 5);
+        gtk_editable_set_editable(GTK_EDITABLE(entry_res), FALSE);
+
+        gtk_box_pack_start(GTK_BOX(hbox_res), entry_res, FALSE, FALSE, 0);
+
+        GtkWidget *label_res = gtk_label_new("resolution");
+        gtk_box_pack_start(GTK_BOX(hbox_res), label_res, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(vbox), hbox_res, FALSE, FALSE, 0);
 #ifdef TODO
     g_signal_connect (
         checkbox, "toggled",
