@@ -29,9 +29,6 @@ target.files = $$INSTALLED_FILES
 
 INSTALLS = target target2
 
-message("Target.path = " $$(HOME)/.local/share/evolution/modules/lib/evolution/modules/)
-message("Target.files = " $$INSTALLED_FILES)
-
 debug {
 	OBJECTS_DIR = .obj.debug
 }
