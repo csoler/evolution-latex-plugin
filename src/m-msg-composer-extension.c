@@ -265,7 +265,7 @@ static void update_actions_cb(EHTMLEditor *editor, GtkActionEntry *entries)
 static GtkActionEntry msg_composer_entries[] = {
     { LATEX_CONVERT_ACTION_NAME,
       "ooo-math",
-	  N_("M_y Message Composer Action..."),
+      N_("Convert LaTeX equations"),
       "<Shift><Control>l",
       N_("Convert LaTeX equations"),
 	  G_CALLBACK (action_msg_composer_cb) }
@@ -276,7 +276,7 @@ static void m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer
 	const gchar *ui_def =
 		"<menubar name='main-menu'>\n"
 		"  <placeholder name='pre-edit-menu'>\n"
-		"    <menu action='file-menu'>\n"
+        "    <menu action='edit-menu'>\n"
 		"      <placeholder name='external-editor-holder'>\n"
         "        <menuitem action='convert-latex-equations-action'/>\n"
 		"      </placeholder>\n"
