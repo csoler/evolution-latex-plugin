@@ -274,16 +274,16 @@ static GtkActionEntry msg_composer_entries[] = {
 static void m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer_ext, EMsgComposer *composer)
 {
 	const gchar *ui_def =
-		"<menubar name='main-menu'>\n"
-		"  <placeholder name='pre-edit-menu'>\n"
-        "    <menu action='edit-menu'>\n"
-		"      <placeholder name='external-editor-holder'>\n"
-        "        <menuitem action='convert-latex-equations-action'/>\n"
-		"      </placeholder>\n"
-		"    </menu>\n"
-		"  </placeholder>\n"
-		"</menubar>\n"
-		"\n"
+//		"<menubar name='main-menu'>\n"
+//		"  <placeholder name='pre-edit-menu'>\n"
+//        "    <menu action='edit-menu'>\n"
+//		"      <placeholder name='external-editor-holder'>\n"
+//        "        <menuitem action='convert-latex-equations-action'/>\n"
+//		"      </placeholder>\n"
+//		"    </menu>\n"
+//		"  </placeholder>\n"
+//		"</menubar>\n"
+//		"\n"
 		"<toolbar name='main-toolbar'>\n"
         "  <toolitem action='convert-latex-equations-action'/>\n"
 		"</toolbar>\n";
