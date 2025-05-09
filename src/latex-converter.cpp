@@ -184,7 +184,7 @@ bool convertEquation(const std::string& latex_code,std::string& base64_image_cod
     system( ("rm -f " + template_str + ".dvi").c_str() );
     system( ("rm -f " + template_str + ".ps" ).c_str() );
     system( ("rm -f " + template_str + ".pdf").c_str() );
-    //system( ("rm -f " + template_str + ".png").c_str() );
+    system( ("rm -f " + template_str + ".png").c_str() );
     system( ("rm -f " + template_str + ".b64").c_str() );
     system( ("rm -f " + template_str + ".log").c_str() );
     system( ("rm -f " + template_str + ".aux").c_str() );
