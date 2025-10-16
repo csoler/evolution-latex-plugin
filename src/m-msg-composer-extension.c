@@ -37,8 +37,6 @@
 // Plugin entry functions
 //
 gint e_plugin_lib_enable (EPlugin *ep, gint enable);
-//void ee_editor_command_changed (GtkWidget *textbox);
-//void ee_editor_immediate_launch_changed (GtkWidget *checkbox);
 
 // Plugin implementation
 //
@@ -47,30 +45,6 @@ gint e_plugin_lib_enable (EPlugin *ep, gint enable)
     return 0;
 }
 
-// void ee_editor_command_changed (GtkWidget *textbox)
-// {
-//     GSettings *settings;
-//     const gchar *editor = gtk_entry_get_text (GTK_ENTRY (textbox));
-//     printf ("\n\aeditor is : [%s] \n\a", editor);
-//
-//     /* GSettings access for every key-press. Sucky ? */
-//     settings = e_util_ref_settings ("org.gnome.evolution.plugin.latex-equations");
-//     g_settings_set_string (settings, "command", editor);
-//     g_object_unref (settings);
-// }
-//
-// void ee_editor_immediate_launch_changed (GtkWidget *checkbox)
-// {
-//     gboolean immediately;
-//     GSettings *settings;
-//     immediately = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (checkbox));
-//
-//     printf ("\n\aimmediate launch is : [%d] \n\a", immediately);
-//
-//     settings = e_util_ref_settings ("org.gnome.evolution.plugin.latex-equations");
-//     g_settings_set_boolean (settings, "launch-on-key-press", immediately);
-//     g_object_unref (settings);
-// }
 struct _MMsgComposerExtensionPrivate {
 	gint dummy;
 };
@@ -157,7 +131,9 @@ static void launch_editor_content_ready_cb (GObject *source_object, GAsyncResult
 
     gchar *content = content_hash ? e_content_editor_util_steal_content_data (content_hash, E_CONTENT_EDITOR_GET_TO_SEND_PLAIN, &(eed->content_destroy_notify)) : NULL;
 
+#ifdef DEBUG
     g_print ("Got the following message content:\n%s\n", (char*)content);
+#endif
 
     // now convert the message
 
@@ -394,37 +370,8 @@ void add_command_widget_for(GtkWidget *vbox,const char *command,const char *pack
 GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *epl)
 {
     GtkWidget *vbox;
-//    GSettings *settings;
-//    gchar *editor;
-//    gboolean checked;
 
     fprintf(stderr,"***** e_plugin_lib_get_configure_widget called!\n");
-
-#ifdef SUSPENDED
-    vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
-    textbox = gtk_entry_new ();
-    label = gtk_label_new (_("Command to be executed to launch the editor: "));
-    help = gtk_label_new (_("For XEmacs use “xemacs”\nFor Vim use “gvim -f”"));
-//    settings = e_util_ref_settings ("org.gnome.evolution.plugin.latex-equations");
-
-//    editor = g_settings_get_string (settings, "command");
-
-    if (editor) {
-        gtk_entry_set_text (GTK_ENTRY (textbox), editor);
-        g_free (editor);
-    }
-
-    checkbox = gtk_check_button_new_with_mnemonic ( _("_Automatically launch when a new mail is edited"));
-//    checked = g_settings_get_boolean (settings, "launch-on-key-press");
-//    if (checked)
-//        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbox), TRUE);
-//    g_object_unref (settings);
-
-    gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), textbox, FALSE, FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), help, FALSE, FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), checkbox, FALSE, FALSE, 0);
-#endif
 
     vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
 
@@ -433,8 +380,6 @@ GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *epl)
     add_command_widget_for(vbox,"/usr/bin/ps2pdf","ghostscript");
     add_command_widget_for(vbox,"/usr/bin/pdftocairo","poppler-utils");
     add_command_widget_for(vbox,"/usr/bin/base64","coreutils");
-
-//        g_signal_connect(entry_cmd, "changed", G_CALLBACK(on_command_changed), NULL);
 
         // --- Row 2: Resolution + Entry ---
         GtkWidget *hbox_res = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);

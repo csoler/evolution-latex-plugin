@@ -22,7 +22,9 @@
 
 #include <math.h>
 #include <string.h>
+#include <unistd.h>
 
+#include <cstdint>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -105,7 +107,9 @@ bool parseFile(const std::string& file,std::vector<Equation>& eqns,std::string& 
                 eq.end = i;
                 eq.latex_code = file.substr(last_start+1,i-last_start-1);
 
+#ifdef DEBUG
                 std::cerr << "Found new equation \"" << eq.latex_code << "\"" << std::endl;
+#endif
                 eqns.push_back(eq);
                 inside_equation = false;
             }
@@ -122,9 +126,16 @@ bool parseFile(const std::string& file,std::vector<Equation>& eqns,std::string& 
 
 bool convertEquation(const std::string& latex_code,std::string& base64_image_code,int& width,int& height,int& err_code,std::string& error_details)
 {
-    //char template_c[500] = "/tmp/tmp_file_evolution_latex_plugin_XXXXXX" ;
     char template_c[500] = "tmp_file_evolution_latex_plugin_XXXXXX" ;
-    mkstemp(template_c);
+    int fd;
+
+    if(-1 == (fd=mkstemp(template_c)))
+    {
+        err_code = LATEX_CONVERTER_ERROR_CODE_MKSTMP;
+        error_details = "errno = " + std::to_string(errno) ;
+        return false;
+    }
+    close(fd);	// mkstemp leaves the file open!
 
     err_code = LATEX_CONVERTER_ERROR_CODE_NONE;
     error_details.clear();
@@ -167,10 +178,10 @@ bool convertEquation(const std::string& latex_code,std::string& base64_image_cod
         err_code = LATEX_CONVERTER_ERROR_CODE_LATEX;
         return false;
     }
-    if(system(command_dvips.c_str()))    { err_code = LATEX_CONVERTER_ERROR_CODE_DVIPS; return false; }
-    if(system(command_ps2pdf.c_str()))   { err_code = LATEX_CONVERTER_ERROR_CODE_PS2PDF; return false; }
+    if(system(command_dvips.c_str()))    { err_code = LATEX_CONVERTER_ERROR_CODE_DVIPS;   return false; }
+    if(system(command_ps2pdf.c_str()))   { err_code = LATEX_CONVERTER_ERROR_CODE_PS2PDF;  return false; }
     if(system(command_pdftoppm.c_str())) { err_code = LATEX_CONVERTER_ERROR_CODE_PDF2PNG; return false; }
-    if(system(command_base64.c_str()))   { err_code = LATEX_CONVERTER_ERROR_CODE_BASE64; return false; }
+    if(system(command_base64.c_str()))   { err_code = LATEX_CONVERTER_ERROR_CODE_BASE64;  return false; }
 
     get_png_size(template_str + ".png",width,height);
 
@@ -231,9 +242,11 @@ bool replaceEquations(const std::string& input_file,const std::vector<Equation>&
 
 bool convertText_cpp(const std::string& input,std::string& output,int& error_code,std::string& error_details)
 {
+#ifdef DEBUG
     std::cerr << "Converting a file of " << input.size() << " characters." << std::endl
               << std::endl << "===========INPUT TEXT================" << std::endl
               << input << std::endl << "=====================================" << std::endl ;
+#endif
 
     std::vector<Equation> eqns;
     std::string err_str;
@@ -243,7 +256,9 @@ bool convertText_cpp(const std::string& input,std::string& output,int& error_cod
         error_code = LATEX_CONVERTER_ERROR_CODE_PARSING;
         return false;
     }
+#ifdef DEBUG
     std::cerr << "Read " << eqns.size() << " equations." << std::endl;
+#endif
 
     for(uint32_t i=0;i<eqns.size();++i)
         if(!convertEquation(eqns[i].latex_code,eqns[i].base64_code,eqns[i].width,eqns[i].height,error_code,error_details))
@@ -255,8 +270,10 @@ bool convertText_cpp(const std::string& input,std::string& output,int& error_cod
         return false;
     }
 
+#ifdef DEBUG
     std::cerr << "Converted text: " << std::endl << "==========OUTPUT TEXT================" << std::endl
               << output << std::endl << "=====================================" << std::endl ;
+#endif
     return true;
 }
 
