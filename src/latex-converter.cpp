@@ -193,13 +193,27 @@ bool convertEquation(const std::string& latex_code,std::string& base64_image_cod
     return true;
 }
 
-bool replaceEquations(const std::string& input_file,const std::vector<Equation>& eqns,std::string& output_file,std::string& err_str)
+// replace all \n into a <br/> statement
+
+std::string substituteEndl(const std::string& input)
+{
+    std::string output;
+
+    for(uint i=0;i<input.size();++i)
+        if(input[i] == '\n')
+            output.append("<BR/>");
+        else
+            output.push_back(input[i]);
+
+    return output;
+}
+bool replaceEquations(const std::string& input_file,const std::vector<Equation>& eqns,std::string& output_file,std::string& /*err_str*/)
 {
     int last_end = 0;
 
-    for(int i=0;i<eqns.size();++i)
+    for(size_t i=0;i<eqns.size();++i)
     {
-        output_file.append(input_file.substr(last_end,eqns[i].start-last_end)); // concats whatever is before the eq
+        output_file.append(substituteEndl(input_file.substr(last_end,eqns[i].start-last_end))); // concats whatever is before the eq
         output_file.append("<IMG src=\"data:image/png;base64,");
         output_file.append(eqns[i].base64_code);
 
@@ -207,17 +221,19 @@ bool replaceEquations(const std::string& input_file,const std::vector<Equation>&
         int size = eqns[i].height/271.0 * 16.0;
         sprintf(s,"%dpx",(int)rint(size));
 
-        output_file.append("\" alt=\"" + eqns[i].latex_code + "\" style=\"height:"+s+"; vertical-align:middle;\">");
+        output_file.append("\" alt=\"$" + eqns[i].latex_code + "$\" style=\"height:"+s+"; vertical-align:middle;\"> ");
         last_end = eqns[i].end+1;
     }
-    output_file.append(input_file.substr(last_end,input_file.size()));
+    output_file.append(substituteEndl(input_file.substr(last_end,input_file.size())));
 
     return true;
 }
 
 bool convertText_cpp(const std::string& input,std::string& output,int& error_code,std::string& error_details)
 {
-    std::cerr << "Converting a file of " << input.size() << " characters." << std::endl;
+    std::cerr << "Converting a file of " << input.size() << " characters." << std::endl
+              << std::endl << "===========INPUT TEXT================" << std::endl
+              << input << std::endl << "=====================================" << std::endl ;
 
     std::vector<Equation> eqns;
     std::string err_str;
@@ -239,6 +255,8 @@ bool convertText_cpp(const std::string& input,std::string& output,int& error_cod
         return false;
     }
 
+    std::cerr << "Converted text: " << std::endl << "==========OUTPUT TEXT================" << std::endl
+              << output << std::endl << "=====================================" << std::endl ;
     return true;
 }
 
