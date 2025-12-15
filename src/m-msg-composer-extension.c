@@ -38,13 +38,6 @@
 //
 gint e_plugin_lib_enable (EPlugin *ep, gint enable);
 
-// Plugin implementation
-//
-gint e_plugin_lib_enable (EPlugin *ep, gint enable)
-{
-    return 0;
-}
-
 struct _MMsgComposerExtensionPrivate {
 	gint dummy;
 };
@@ -238,6 +231,54 @@ static void update_actions_cb(EHTMLEditor *editor, GtkActionEntry *entries)
 }
 #endif
 
+#if GTK_CHECK_VERSION(4,0,0)
+
+static void msg_composer_extension_constructed (EExtensible *extensible, gpointer     user_data)
+{
+    EMsgComposer *composer = E_MSG_COMPOSER (extensible);
+    GtkWidget *header_bar;
+    GtkWidget *button;
+
+    g_return_if_fail (E_IS_MSG_COMPOSER (composer));
+
+    /* Get the composer header bar */
+    header_bar = e_msg_composer_get_header_bar (composer);
+    if (!header_bar)
+        return;
+
+    /* Create button */
+    button = gtk_button_new_from_icon_name ("accessories-calculator-symbolic");
+    gtk_widget_set_tooltip_text (button, _("Convert LaTeX equations"));
+
+    /* Connect your existing callback */
+    g_signal_connect (
+        button,
+        "clicked",
+        G_CALLBACK (action_msg_composer_cb),
+        composer);
+
+    /* Add to header bar */
+    gtk_header_bar_pack_end (GTK_HEADER_BAR (header_bar), button);
+}
+
+void e_plugin_lib_enable(EPlugin *plugin)
+{
+    e_extensible_register_extension (
+        E_TYPE_MSG_COMPOSER,
+        E_TYPE_EXTENSION,
+        msg_composer_extension_constructed,
+        NULL, NULL);
+}
+
+#else
+
+// Plugin implementation
+//
+gint e_plugin_lib_enable (EPlugin *ep, gint enable)
+{
+    return 0;
+}
+
 static GtkActionEntry msg_composer_entries[] = {
     { LATEX_CONVERT_ACTION_NAME,
       "ooo-math",
@@ -250,16 +291,6 @@ static GtkActionEntry msg_composer_entries[] = {
 static void m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer_ext, EMsgComposer *composer)
 {
 	const gchar *ui_def =
-//		"<menubar name='main-menu'>\n"
-//		"  <placeholder name='pre-edit-menu'>\n"
-//        "    <menu action='edit-menu'>\n"
-//		"      <placeholder name='external-editor-holder'>\n"
-//        "        <menuitem action='convert-latex-equations-action'/>\n"
-//		"      </placeholder>\n"
-//		"    </menu>\n"
-//		"  </placeholder>\n"
-//		"</menubar>\n"
-//		"\n"
 		"<toolbar name='main-toolbar'>\n"
         "  <toolitem action='convert-latex-equations-action'/>\n"
 		"</toolbar>\n";
@@ -311,6 +342,9 @@ static void m_msg_composer_extension_constructed (GObject *object)
 
 	m_msg_composer_extension_add_ui (M_MSG_COMPOSER_EXTENSION (object), E_MSG_COMPOSER (extensible));
 }
+#endif
+
+
 
 static void m_msg_composer_extension_class_init (MMsgComposerExtensionClass *class)
 {
