@@ -40,7 +40,12 @@ int get_png_size(const std::string& filename, int& width, int& height)
 
     // Read and validate the PNG signature (first 8 bytes)
     png_byte header[8];
-    fread(header, 1, 8, fp);
+    if(8 != fread(header, 1, 8, fp))
+    {
+        std::cerr << "Cannot read png file " << filename << ": wrong header." << std::endl;
+        return -6;
+    }
+
     if (png_sig_cmp(header, 0, 8)) {
         fclose(fp);
         return -2;  // Not a PNG
@@ -89,10 +94,9 @@ struct Equation {
     int height;
     std::string base64_code;
 };
-bool parseFile(const std::string& file,std::vector<Equation>& eqns,std::string& err_str)
+bool parseFile(const std::string& file,std::vector<Equation>& eqns,std::string&)
 {
-    int i=0;
-    int current_eqn = 0;
+    uint i=0;
     bool inside_equation = false;
     int last_start = 0;
 
@@ -191,15 +195,20 @@ bool convertEquation(const std::string& latex_code,std::string& base64_image_cod
     buffer << std::ifstream(template_str+".b64").rdbuf();
     base64_image_code = buffer.str();
 
-    system( ("rm -f " + template_str + ".tex").c_str() );
-    system( ("rm -f " + template_str + ".dvi").c_str() );
-    system( ("rm -f " + template_str + ".ps" ).c_str() );
-    system( ("rm -f " + template_str + ".pdf").c_str() );
-    system( ("rm -f " + template_str + ".png").c_str() );
-    system( ("rm -f " + template_str + ".b64").c_str() );
-    system( ("rm -f " + template_str + ".log").c_str() );
-    system( ("rm -f " + template_str + ".aux").c_str() );
-    system( ("rm -f " + template_str).c_str() );
+    auto check_rm = [&template_str](const std::string& s) {
+
+        if(system( ("rm -f " + template_str + s).c_str() ))
+            std::cerr << "Cannot remove temporary file " << template_str + s << ": ERRNO = " << errno << std::endl;
+    };
+    check_rm(".tex");
+    check_rm(".dvi");
+    check_rm(".ps" );
+    check_rm(".pdf");
+    check_rm(".png");
+    check_rm(".b64");
+    check_rm(".log");
+    check_rm(".aux");
+    check_rm("");
 
     return true;
 }

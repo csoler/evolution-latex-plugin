@@ -10,7 +10,7 @@ test {
 TARGET = latex-equations
 INCLUDEPATH += . 
 
-QMAKE_CXXFLAGS += -fPIC
+QMAKE_CXXFLAGS += -fPIC 
 
 PKGCONFIG += glib-2.0
 PKGCONFIG += gtk+-3.0
@@ -45,11 +45,11 @@ greaterThan(EDS_VERSION,3.50.0) {
 
 # Input
 	HEADERS += \
-			m-msg-composer-extension.h \
+			latex-equations-extension-gtk3.h \
 			latex-converter.h
 
 	SOURCES += \
-			m-msg-composer-extension.c \
+			latex-equations-extension-gtk3.c \
 			latex-converter.cpp
 
 }

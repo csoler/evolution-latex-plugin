@@ -29,14 +29,14 @@
 
 #include <composer/e-msg-composer.h>
 
-#include "m-msg-composer-extension.h"
+#include "latex-equations-extension-gtk3.h"
 #include "latex-converter.h"
 
 #define LATEX_CONVERT_ACTION_NAME "convert-latex-equations-action"
 
 // Plugin entry functions
 //
-gint e_plugin_lib_enable (EPlugin *ep, gint enable);
+gint e_plugin_lib_enable (EPlugin *, gint enable);
 
 struct _MMsgComposerExtensionPrivate {
 	gint dummy;
@@ -44,7 +44,7 @@ struct _MMsgComposerExtensionPrivate {
 
 G_DEFINE_DYNAMIC_TYPE_EXTENDED (MMsgComposerExtension, m_msg_composer_extension, E_TYPE_EXTENSION, 0, G_ADD_PRIVATE_DYNAMIC (MMsgComposerExtension))
 
-GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *epl);
+GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *);
 
 struct ExternalEditorData {
     EMsgComposer *composer;
@@ -173,7 +173,7 @@ static bool checkExists(EMsgComposer *composer,const char *path,const char *pack
 
     return false;
 }
-static void action_msg_composer_cb (GtkAction *action, MMsgComposerExtension *msg_composer_ext)
+static void action_msg_composer_cb (GtkAction * /*action*/, MMsgComposerExtension *msg_composer_ext)
 {
     EMsgComposer *composer;
     g_return_if_fail (M_IS_MSG_COMPOSER_EXTENSION (msg_composer_ext));
@@ -274,7 +274,7 @@ void e_plugin_lib_enable(EPlugin *plugin)
 
 // Plugin implementation
 //
-gint e_plugin_lib_enable (EPlugin *ep, gint enable)
+gint e_plugin_lib_enable (EPlugin * /*ep*/, gint /*enable*/)
 {
     return 0;
 }
@@ -359,7 +359,7 @@ static void m_msg_composer_extension_class_init (MMsgComposerExtensionClass *cla
 	extension_class->extensible_type = E_TYPE_MSG_COMPOSER;
 }
 
-static void m_msg_composer_extension_class_finalize (MMsgComposerExtensionClass *class)
+static void m_msg_composer_extension_class_finalize (MMsgComposerExtensionClass * /*class*/)
 {
 }
 
@@ -401,7 +401,7 @@ void add_command_widget_for(GtkWidget *vbox,const char *command,const char *pack
     gtk_box_pack_start(GTK_BOX(vbox), hbox_cmd, FALSE, FALSE, 0);
 }
 
-GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *epl)
+GtkWidget *e_plugin_lib_get_configure_widget (EPlugin * /*epl*/)
 {
     GtkWidget *vbox;
 
