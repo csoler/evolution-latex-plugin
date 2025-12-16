@@ -38,6 +38,8 @@
 //
 gint e_plugin_lib_enable (EPlugin *, gint enable);
 
+void e_plugin_ui_init (EPlugin *);
+
 struct _MMsgComposerExtensionPrivate {
 	gint dummy;
 };
@@ -279,6 +281,10 @@ gint e_plugin_lib_enable (EPlugin * /*ep*/, gint /*enable*/)
     return 0;
 }
 
+void e_plugin_ui_init (EPlugin * /*plugin*/)
+{
+}
+
 static GtkActionEntry msg_composer_entries[] = {
     { LATEX_CONVERT_ACTION_NAME,
       "ooo-math",
@@ -436,4 +442,19 @@ GtkWidget *e_plugin_lib_get_configure_widget (EPlugin * /*epl*/)
     gtk_widget_show_all (vbox);
 
     return vbox;
+}
+
+/* Module Entry Points */
+void e_module_load (GTypeModule *type_module);
+void e_module_unload (GTypeModule *type_module);
+
+G_MODULE_EXPORT void
+e_module_load (GTypeModule *type_module)
+{
+    m_msg_composer_extension_type_register (type_module);
+}
+
+G_MODULE_EXPORT void
+e_module_unload (GTypeModule *type_module)
+{
 }
