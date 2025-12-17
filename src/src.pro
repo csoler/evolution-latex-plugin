@@ -25,12 +25,14 @@ DEFINES += GETTEXT_PACKAGE='\\"latex-equations\\"'
 DESTDIR = ../lib
 
 target2.path = $$(HOME)/.local/share/evolution/modules/lib/evolution/plugins/
-target2.files = latex-equations.eplug
+target2.files += latex-equations.eplug
+target2.files += latex-equations-ui.eplug
 
 target.path = $$(HOME)/.local/share/evolution/modules/lib/evolution/modules/
 target.files = $$DESTDIR/lib$${TARGET}.so 
 
-INSTALLS = target target2
+INSTALLS += target 
+INSTALLS += target2
 
 debug {
 	OBJECTS_DIR = .obj.debug

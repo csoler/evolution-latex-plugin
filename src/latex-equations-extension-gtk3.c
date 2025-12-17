@@ -339,7 +339,66 @@ static void m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer
 
 	gtk_ui_manager_ensure_update (ui_manager);
 }
+static void paste_special_cb (GtkAction *action, gpointer user_data)
+{
+    EMsgComposer *composer = user_data;
+    EHTMLEditor *editor;
+    GtkClipboard *clipboard;
+    gchar *text;
 
+    editor = e_msg_composer_get_editor (composer);
+    if (!editor)
+        return;
+
+    clipboard = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
+    text = gtk_clipboard_wait_for_text (clipboard);
+    if (!text)
+        return;
+
+    printf("Handling the following text: \"%s\"\n", text);
+
+//    gchar *html = text_to_html (text);
+//    e_content_editor_insert_html (editor, html);
+//    g_free (html);
+
+    g_free (text);
+}
+static void m_msg_composer_extension_add_paste_action (MMsgComposerExtension *msg_composer_ext, EMsgComposer *composer)
+{
+    printf("adding new action...");
+    EHTMLEditor *editor = e_msg_composer_get_editor(composer);
+    GtkUIManager *ui_manager = e_html_editor_get_ui_manager (editor);
+
+    GtkActionGroup *group = gtk_action_group_new ("mypaste-actions");
+
+    GtkActionEntry actions[] = {
+        {
+            "paste-special-action",
+            NULL,
+            "Paste Special",
+            NULL,
+            "Paste with custom HTML handling",
+            G_CALLBACK (paste_special_cb)
+        }
+    };
+
+    gtk_action_group_add_actions ( group, actions, G_N_ELEMENTS (actions), composer );
+
+    gtk_ui_manager_insert_action_group (ui_manager, group, 0);
+    g_object_unref (group);
+
+    /* Now add the menu item directly to the popup menu */
+    GtkWidget *popup = gtk_ui_manager_get_widget(ui_manager, "/ui/context-menu");
+    if (popup) {
+        GtkWidget *menu_item = gtk_ui_manager_get_widget(ui_manager, "/ui/context-menu/PasteSpecial");
+        if (!menu_item) {
+            menu_item = gtk_menu_item_new_with_label("Paste Special");
+            g_signal_connect(menu_item, "activate", G_CALLBACK(paste_special_cb), composer);
+            gtk_menu_shell_append(GTK_MENU_SHELL(popup), menu_item);
+            gtk_widget_show(menu_item);
+        }
+    }
+}
 static void m_msg_composer_extension_constructed (GObject *object)
 {
 	EExtension *extension;
@@ -353,6 +412,7 @@ static void m_msg_composer_extension_constructed (GObject *object)
 
 	m_msg_composer_extension_add_ui(M_MSG_COMPOSER_EXTENSION (object), E_MSG_COMPOSER (extensible));
 	m_msg_composer_extension_add_menu_item(M_MSG_COMPOSER_EXTENSION (object), E_MSG_COMPOSER (extensible));
+    m_msg_composer_extension_add_paste_action(M_MSG_COMPOSER_EXTENSION (object), E_MSG_COMPOSER (extensible));
 }
 
 static void m_msg_composer_extension_class_init (MMsgComposerExtensionClass *class)
