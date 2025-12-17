@@ -8,7 +8,7 @@ Homepage: http://artis.imag.fr/~Cyril.Soler
 
 Package: evolution-plugin-latex-equations
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, texlive-fonts-recommended, texlive-latex-base
 Description: LaTeX plugin for Gnome Evolution mailer
  Evolution is a mail client shipped with an HTML editor. This plugin
  lets the user enter equations in LaTeX format in the text between single dollar

@@ -43,10 +43,5 @@ release {
 HEADERS += latex-converter.h
 SOURCES += latex-converter.cpp
 
-greaterThan(EDS_VERSION,3.50.0) {
-	HEADERS += latex-equations-extension-gtk4.h 
-	SOURCES += latex-equations-extension-gtk4.c 
-} else {
-	HEADERS += latex-equations-extension-gtk3.h 
-	SOURCES += latex-equations-extension-gtk3.c 
-}
+HEADERS += latex-equations-extension-gtk3.h 
+SOURCES += latex-equations-extension-gtk3.c 
