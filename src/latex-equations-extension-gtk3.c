@@ -46,13 +46,19 @@ struct _MMsgComposerExtensionPrivate {
 
 G_DEFINE_DYNAMIC_TYPE_EXTENDED (MMsgComposerExtension, m_msg_composer_extension, E_TYPE_EXTENSION, 0, G_ADD_PRIVATE_DYNAMIC (MMsgComposerExtension))
 
-	GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *);
+GtkWidget *e_plugin_lib_get_configure_widget (EPlugin *);
 
-	struct ExternalEditorData {
-		EMsgComposer *composer;
-		GDestroyNotify content_destroy_notify;
-		guint cursor_position, cursor_offset;
-	};
+struct ExternalEditorData {
+    EMsgComposer *composer;
+    GDestroyNotify content_destroy_notify;
+    guint cursor_position, cursor_offset;
+};
+struct ExternalEditorDataInsert {
+    EMsgComposer *composer;
+    GDestroyNotify content_destroy_notify;
+    guint cursor_position, cursor_offset;
+    gchar *text;
+};
 static void show_error_dialog(GtkWindow *parent, const char *message)
 {
 	GtkWidget *dialog;
@@ -103,7 +109,6 @@ void show_error_dialog_scrollable(GtkWindow *parent, const char *title, const ch
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
 }
-
 static void launch_editor_content_ready_cb (GObject *source_object, GAsyncResult *result, gpointer user_data)
 {
 	struct ExternalEditorData *eed = user_data;
@@ -339,27 +344,125 @@ static void m_msg_composer_extension_add_ui (MMsgComposerExtension *msg_composer
 
 	gtk_ui_manager_ensure_update (ui_manager);
 }
+static gboolean clipboard_has_image_url(void)
+{
+    GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    gchar *text = gtk_clipboard_wait_for_text(clipboard);
+    gboolean has_image = FALSE;
+
+            printf("Examining text \"%s\"\n",text);
+
+    if (text) {
+        gchar *lower = g_ascii_strdown(text, -1);
+        if (g_str_has_suffix(lower, ".png") ||
+            g_str_has_suffix(lower, ".jpg") ||
+            g_str_has_suffix(lower, ".jpeg") ||
+            g_str_has_suffix(lower, ".gif") ||
+            g_str_has_suffix(lower, ".bmp") ||
+            g_str_has_suffix(lower, ".webp")) {
+            has_image = TRUE;
+            printf("Image detected!");
+        }
+        else
+            printf("No image detected!");
+
+        g_free(lower);
+        g_free(text);
+    }
+
+    return has_image;
+}
+/* Called just before the menu is shown */
+static void update_menu_item_sensitivity(GtkWidget *menu, gpointer user_data)
+{
+    GtkWidget *menu_item = GTK_WIDGET(user_data);
+    gboolean enable = clipboard_has_image_url();
+
+    printf("Setting sensitiviy to %d.\n",enable);
+
+    gtk_widget_set_sensitive(menu_item, enable);
+}
+static gchar *create_remote_image_link(const gchar *url)
+{
+    int n = strlen(url);
+    gchar *res = g_malloc(n*2+1000);
+
+    snprintf(res,n+1000,"<img src=\"%s\" alt=\"Image link to %s\"/>",url,url);
+    return res;
+}
+static void insert_html(EContentEditor *editor, const gchar *html)
+{
+    /* Get the internal WebKitWebView */
+    GtkWidget *view = NULL;
+    g_object_get(G_OBJECT(editor), "view", &view, NULL);
+    if (!view) return;
+
+    WebKitWebView *webview = WEBKIT_WEB_VIEW(view);
+    gchar *js = g_strdup_printf(
+        "document.execCommand('insertHTML', false, `%s`);",
+        html
+    );
+    webkit_web_view_run_javascript(webview, js, NULL, NULL, NULL);
+    g_free(js);
+}
+static void simulate_paste(EMsgComposer *composer)
+{
+    EHTMLEditor *editor = e_msg_composer_get_editor(composer);
+    GtkUIManager *ui_manager = e_html_editor_get_ui_manager (editor);
+
+    printf("In simulate_paste\n");
+
+    // The standard Edit → Paste action is usually called "EditPaste"
+    GtkAction *paste_action = gtk_ui_manager_get_action(ui_manager, "PasteFromClipboard");
+    if (paste_action)
+    {
+        printf("simulating paste action...\n");
+        g_signal_emit_by_name(paste_action, "activate");
+    }
+}
+static void set_clipboard_text(const gchar *text)
+{
+    GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    gtk_clipboard_set_text(clipboard, text, -1);
+    gtk_clipboard_store(clipboard);  // ensure it persists
+}
 static void paste_special_cb (GtkAction *action, gpointer user_data)
 {
     EMsgComposer *composer = user_data;
     EHTMLEditor *editor;
     GtkClipboard *clipboard;
-    gchar *text;
 
     editor = e_msg_composer_get_editor (composer);
     if (!editor)
         return;
 
     clipboard = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
-    text = gtk_clipboard_wait_for_text (clipboard);
+    gchar *text = gtk_clipboard_wait_for_text (clipboard);
+
     if (!text)
         return;
 
     printf("Handling the following text: \"%s\"\n", text);
 
-//    gchar *html = text_to_html (text);
-//    e_content_editor_insert_html (editor, html);
-//    g_free (html);
+    gchar *html = create_remote_image_link(text);
+
+    //
+    EContentEditor *cnt_editor = e_html_editor_get_content_editor(editor);
+    EContentEditorMode mode = e_html_editor_get_mode(editor);
+
+    if(mode != E_CONTENT_EDITOR_MODE_HTML && mode != E_CONTENT_EDITOR_MODE_MARKDOWN_HTML)
+    {
+        show_error_dialog(&composer->parent,"Cannot convert equations in plain text mode.\nPlease use HTML editor instead.");
+        return;
+    }
+
+    // Start async request of editor data
+
+    printf("Inserting link: \"%s\".\n",html);
+
+    e_content_editor_insert_content ( cnt_editor, html, E_CONTENT_EDITOR_INSERT_TEXT_HTML );
+
+    g_print ("New 2 action: %s: for composer '%s'\n", G_STRFUNC, gtk_window_get_title (GTK_WINDOW (composer)));
 
     g_free (text);
 }
@@ -375,7 +478,7 @@ static void m_msg_composer_extension_add_paste_action (MMsgComposerExtension *ms
         {
             "paste-special-action",
             NULL,
-            "Paste Special",
+            "Paste URL as remote image",
             NULL,
             "Paste with custom HTML handling",
             G_CALLBACK (paste_special_cb)
@@ -387,6 +490,8 @@ static void m_msg_composer_extension_add_paste_action (MMsgComposerExtension *ms
     gtk_ui_manager_insert_action_group (ui_manager, group, 0);
     g_object_unref (group);
 
+    GtkClipboard *clipboard = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
+
     /* Now add the menu item directly to the popup menu */
     GtkWidget *popup = gtk_ui_manager_get_widget(ui_manager, "/ui/context-menu");
     if (popup) {
@@ -394,6 +499,8 @@ static void m_msg_composer_extension_add_paste_action (MMsgComposerExtension *ms
         if (!menu_item) {
             menu_item = gtk_menu_item_new_with_label("Paste Special");
             g_signal_connect(menu_item, "activate", G_CALLBACK(paste_special_cb), composer);
+            g_signal_connect(popup, "map", G_CALLBACK(update_menu_item_sensitivity), menu_item);
+
             gtk_menu_shell_append(GTK_MENU_SHELL(popup), menu_item);
             gtk_widget_show(menu_item);
         }
