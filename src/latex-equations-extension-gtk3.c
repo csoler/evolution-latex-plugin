@@ -53,12 +53,7 @@ struct ExternalEditorData {
     GDestroyNotify content_destroy_notify;
     guint cursor_position, cursor_offset;
 };
-struct ExternalEditorDataInsert {
-    EMsgComposer *composer;
-    GDestroyNotify content_destroy_notify;
-    guint cursor_position, cursor_offset;
-    gchar *text;
-};
+
 static void show_error_dialog(GtkWindow *parent, const char *message)
 {
 	GtkWidget *dialog;
@@ -390,42 +385,7 @@ static gchar *create_remote_image_link(const gchar *url)
     snprintf(res,n+1000,"<img src=\"%s\" alt=\"Image link to %s\"/>",url,url);
     return res;
 }
-static void insert_html(EContentEditor *editor, const gchar *html)
-{
-    /* Get the internal WebKitWebView */
-    GtkWidget *view = NULL;
-    g_object_get(G_OBJECT(editor), "view", &view, NULL);
-    if (!view) return;
 
-    WebKitWebView *webview = WEBKIT_WEB_VIEW(view);
-    gchar *js = g_strdup_printf(
-        "document.execCommand('insertHTML', false, `%s`);",
-        html
-    );
-    webkit_web_view_run_javascript(webview, js, NULL, NULL, NULL);
-    g_free(js);
-}
-static void simulate_paste(EMsgComposer *composer)
-{
-    EHTMLEditor *editor = e_msg_composer_get_editor(composer);
-    GtkUIManager *ui_manager = e_html_editor_get_ui_manager (editor);
-
-    printf("In simulate_paste\n");
-
-    // The standard Edit → Paste action is usually called "EditPaste"
-    GtkAction *paste_action = gtk_ui_manager_get_action(ui_manager, "PasteFromClipboard");
-    if (paste_action)
-    {
-        printf("simulating paste action...\n");
-        g_signal_emit_by_name(paste_action, "activate");
-    }
-}
-static void set_clipboard_text(const gchar *text)
-{
-    GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
-    gtk_clipboard_set_text(clipboard, text, -1);
-    gtk_clipboard_store(clipboard);  // ensure it persists
-}
 static void paste_special_cb (GtkAction *action, gpointer user_data)
 {
     EMsgComposer *composer = user_data;
@@ -445,6 +405,7 @@ static void paste_special_cb (GtkAction *action, gpointer user_data)
     printf("Handling the following text: \"%s\"\n", text);
 
     gchar *html = create_remote_image_link(text);
+    g_free (text);
 
     //
     EContentEditor *cnt_editor = e_html_editor_get_content_editor(editor);
@@ -453,6 +414,7 @@ static void paste_special_cb (GtkAction *action, gpointer user_data)
     if(mode != E_CONTENT_EDITOR_MODE_HTML && mode != E_CONTENT_EDITOR_MODE_MARKDOWN_HTML)
     {
         show_error_dialog(&composer->parent,"Cannot convert equations in plain text mode.\nPlease use HTML editor instead.");
+        g_free(html);
         return;
     }
 
@@ -464,7 +426,7 @@ static void paste_special_cb (GtkAction *action, gpointer user_data)
 
     g_print ("New 2 action: %s: for composer '%s'\n", G_STRFUNC, gtk_window_get_title (GTK_WINDOW (composer)));
 
-    g_free (text);
+    g_free(html);
 }
 static void m_msg_composer_extension_add_paste_action (MMsgComposerExtension *msg_composer_ext, EMsgComposer *composer)
 {
@@ -497,7 +459,7 @@ static void m_msg_composer_extension_add_paste_action (MMsgComposerExtension *ms
     if (popup) {
         GtkWidget *menu_item = gtk_ui_manager_get_widget(ui_manager, "/ui/context-menu/PasteSpecial");
         if (!menu_item) {
-            menu_item = gtk_menu_item_new_with_label("Paste Special");
+            menu_item = gtk_menu_item_new_with_label("Paste remote image link");
             g_signal_connect(menu_item, "activate", G_CALLBACK(paste_special_cb), composer);
             g_signal_connect(popup, "map", G_CALLBACK(update_menu_item_sensitivity), menu_item);
 
